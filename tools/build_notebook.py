@@ -41,7 +41,7 @@ md(r"""
 
 **Extensions.** §5.8 adds an exact-vs-Monte-Carlo check of the decision quantity across the whole $P_{GS}$ range; §5.9 and §6.6 add a **two-car team model** (next-event discrete-event simulation of a shared pit box); §6.7 **calibrates** the model on 16 real Singapore races (2008–2025) with held-out validation; §6.4 and §6.8 study **sensitivity and parameter uncertainty**; §6.5 measures the **speed-up** of the vectorised simulator.
 
-Repository, web demo and documentation: https://github.com/dinukacodes/f1-pit-strategy-simulator · live demo: https://dinukacodes.github.io/f1-pit-strategy-simulator/
+Repository, web demo and documentation: https://github.com/dinukacodes/f1-pit-strategy-simulator · live demo: https://pitstop-strategy-lab.pages.dev/
 
 *Run with Runtime → Run all (about a minute). The small data files are read from the repository, so no API access is needed. Seeds are fixed and printed. Parameters marked "assumed" are documented in §3 and tested in the sensitivity study.*
 """)

@@ -2,7 +2,7 @@
 
 This guide covers the **web demo** (the *Pit Stop Strategy Lab*) and the **notebook**. The web demo runs entirely in your browser. Nothing is installed and nothing is sent to a server.
 
-**Live demo:** <https://dinukacodes.github.io/f1-pit-strategy-simulator/>
+**Live demo:** <https://pitstop-strategy-lab.pages.dev/> (GitHub Pages copy: <https://dinukacodes.github.io/f1-pit-strategy-simulator/>)
 **Offline:** download the repository and double-click `docs/index.html`. It works from `file://` too.
 
 ---
