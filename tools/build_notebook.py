@@ -10,6 +10,7 @@ import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = open(os.path.join(ROOT, "src", "f1sim.py"), encoding="utf-8").read()
+CAL = open(os.path.join(ROOT, "src", "calibrate.py"), encoding="utf-8").read()
 
 cells = []
 
@@ -607,12 +608,170 @@ for k in ("both react", "split (A reacts)"):
     m = np.array([x[0] for x in team_sweep[k]]); lo = np.array([x[1] for x in team_sweep[k]]); hi = np.array([x[2] for x in team_sweep[k]])
     axs[0].plot(PGS_TEAM, m, "o-", label=k); axs[0].fill_between(PGS_TEAM, lo, hi, alpha=.25)
     print("%-18s team gain vs both fixed: %s" % (k, "  ".join("%.2f:%+.2f[%+.2f,%+.2f]" % (v, *x) for v, x in zip(PGS_TEAM, team_sweep[k]))))
+R_r, R_s = team_rows["both react"], team_rows["split (A reacts)"]
+dd = mean_ci((R_r["total_a"] + R_r["total_b"]) - (R_s["total_a"] + R_s["total_b"]))
+print("Double-stack vs split, team time (baseline): %+.2f s [%+.2f, %+.2f]" % dd)
 axs[0].axhline(0, color="k", lw=.8); axs[0].set_xlabel("$P_{GS}$"); axs[0].set_ylabel("team time vs both fixed [s]")
 axs[0].set_title("Team policy under Safety-Car risk (95% CI)"); axs[0].legend(); axs[0].grid(alpha=.3)
 w = team_rows["both react"]["stack_delay_b"]
 axs[1].hist(w[w > 0], bins=40, color="C1", alpha=.8)
 axs[1].set_xlabel("car B queueing delay when double-stacked [s]"); axs[1].set_ylabel("races"); axs[1].set_title("Double-stack delay (both react, baseline)")
 axs[1].grid(alpha=.3); fig.tight_layout(); fig.savefig(os.path.join(FIG_DIR, "team_double_stack.png"), dpi=150); plt.show()
+""")
+
+
+md(r"""
+### 6.7 Real-data grounding: calibration and held-out validation (Singapore 2008–2025)
+The data are 16 Singapore races from Jolpica-F1 (lap times and pit stops) plus 2023–2025 stints, compounds, stationary times and race-control messages from OpenF1 (`data/`, CC BY-NC-SA 4.0). The calibration code (`src/calibrate.py`) is shown in the next cell. The public lap data has no status flag, so Green / VSC / SC is **inferred from the field's lap times**: a neutralised lap is more than 18% slower than Green pace, and a neutralised period is a Safety Car when the field closes up behind it (gaps < 1.5 s), otherwise a VSC. The classifier is checked against OpenF1's race-control messages.
+
+Then: $\hat P$ by maximum likelihood from transition counts, a Beta posterior for $P_{GS}$, the phase-type SC duration law, the neutralised pace ratios $k_S,k_V$, the 2025 (80 km/h) Green pit loss and stationary-time law, the measured SC pit-loss discount $\alpha_{SC}$, and per-compound wear rates from 2023–2025 stints.
+
+**Held-out validation:** wear rates fitted on 2023–2024 predict the 2025 stints; the SC duration law fitted on 2008–2017 is tested on 2018–2025 (KS, parametric bootstrap); and $P_{GS}$ from 2008–2017 predicts the number of SC onsets in 2018–2025.
+""")
+code("# src/calibrate.py (real-data calibration)\nimport csv, io, urllib.request\n" + CAL.split("import numpy as np", 1)[1].replace("    import f1sim as F\n", "").replace("F.default_params()", "default_params()"))
+code(r"""
+CAL = calibrate()
+names = "GVS"
+print("Inferred track status (G Green, V VSC, S Safety Car):")
+for y in CAL["years"]:
+    print("  %d  %s" % (y, "".join(names[s] for s in CAL["status"][y]["status"])))
+print("\nCheck against OpenF1 race-control messages:")
+for y, l, msg, st in CAL["race_control"]:
+    print("  %d lap %2d  %-30s -> inferred %s" % (y, l, msg, STATUS_NAMES[st]))
+rc = {(y, l): st for y, l, m, st in CAL["race_control"]}
+assert rc[(2023, 20)] == SC and rc[(2023, 22)] == SC and rc[(2023, 44)] == VSC
+assert all(not (s != GREEN).any() for y, s in ((y, CAL["status"][y]["status"]) for y in (2024, 2025)))   # no SC in 2024-25
+C_, P_ = CAL["transition_counts"], CAL["P"]
+print("\nTransition counts (rows from, cols to G/V/S):\n", C_)
+print("MLE P:\n", P_.round(4))
+assert np.allclose(P_, C_ / C_.sum(1, keepdims=True)) and np.allclose(P_.sum(1), 1)
+k, n = CAL["onsets_sc"]; mpost, lo, hi = CAL["p_gs_posterior"]
+print("P_GS: %d onsets / %d Green laps = %.4f; Beta posterior mean %.4f, 95%% interval [%.4f, %.4f] (assumed baseline %.3f)"
+      % (k, n, k / n, mpost, lo, hi, p["p_gs"]))
+print("Lap-1 Safety Cars: %d of %d races -> p1 = %.3f" % (CAL["lap1_sc"], CAL["n_races"], CAL["lap1_sc"] / CAL["n_races"]))
+m_, pss_ = CAL["sc_fit"]
+print("SC durations", sorted(CAL["sc_durations"].tolist()), "-> m = %d, p_SS = %.3f, E[D] = %.2f laps" % (m_, pss_, m_ + pss_ / (1 - pss_)))
+print("Neutralised pace: k_SC = %.3f (%d laps), k_VSC = %.3f (%d laps)  [literature 1.60 / 1.40]"
+      % (CAL["ratios"][SC][0], CAL["ratios"][SC][1], CAL["ratios"][VSC][0], CAL["ratios"][VSC][1]))
+cr = CAL["crew"]
+print("Stationary time 2025: %d stops, median %.2f s, shifted lognormal shift %.1f s, mu %.3f, sigma %.3f, mean %.2f s"
+      % (len(cr["stops"]), np.median(cr["stops"]), cr["shift"], cr["mu"], cr["sigma"], cr["mean"]))
+print("Green net pit loss 2025: median %.2f s over %d stops -> transit loss dT_G = %.2f s (assumed 21.0 s)"
+      % (np.median(CAL["pit2025"]["green"]), len(CAL["pit2025"]["green"]), CAL["dT_G"]))
+for r_ in CAL["sc_stop_years"]:
+    print("  %d: Green stops %.1f s (n=%d), SC stops %.1f s (n=%d) -> alpha_SC = %.2f" % (r_["year"], r_["green_s"], r_["n_green"], r_["sc_s"], r_["n_sc"], r_["alpha_sc"]))
+print("Measured alpha_SC (median over races) = %.2f vs geometry-derived baseline %.2f" % (CAL["alpha_sc"], p["alpha_sc"]))
+for c_, (b_, se_, nl_, ns_) in CAL["wear_all"].items():
+    print("Wear %-6s %.4f +/- %.4f s/lap (%d clean laps, %d stints) -> model k_c = %.4f (assumed %.3f)%s"
+          % (c_, b_, se_, nl_, ns_, CAL["params"]["k_s_per_lap"][c_], p["k_s_per_lap"][c_],
+             "" if ns_ >= MIN_STINTS else "  [< %d stints: scaled from MEDIUM with the assumed ratio]" % MIN_STINTS))
+V = CAL["validation"]
+print("\nHELD-OUT VALIDATION")
+print("  2025 stints, lap-time RMSE: wear model %.3f s vs no-wear model %.3f s (%d laps, fitted on 2023-24)"
+      % (V["heldout_wear_rmse_s"], V["heldout_no_wear_rmse_s"], V["heldout_wear_laps"]))
+print("  SC durations 2018-25 vs law fitted on 2008-17 (m=%d, p_SS=%.2f): KS D = %.3f, bootstrap p = %.2f"
+      % (*V["train_sc_fit"], V["heldout_sc_duration_ks"], V["heldout_sc_duration_ks_p"]))
+print("  SC onsets 2018-25: observed %d, predicted %.1f from 2008-17, Poisson p = %.2f"
+      % (V["heldout_sc_onsets_observed"], V["heldout_sc_onsets_expected"], V["heldout_sc_onsets_poisson_p"]))
+assert V["heldout_wear_rmse_s"] < V["heldout_no_wear_rmse_s"]
+assert V["heldout_sc_duration_ks_p"] > 0.05 and V["heldout_sc_onsets_poisson_p"] > 0.05
+print("PASS 6.7 (calibration consistent with held-out data)")
+""")
+code(r"""
+fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+ax = axs[0, 0]
+grid_ = np.full((len(CAL["years"]), 62), np.nan)
+for i, y in enumerate(CAL["years"]):
+    s_ = CAL["status"][y]["status"]; grid_[i, :len(s_)] = s_
+from matplotlib.colors import ListedColormap
+ax.imshow(grid_, aspect="auto", cmap=ListedColormap(["#2ca02c", "#ffbf00", "#d62728"]), vmin=0, vmax=2, interpolation="nearest")
+ax.set_yticks(range(len(CAL["years"]))); ax.set_yticklabels(CAL["years"], fontsize=7); ax.set_xlabel("lap")
+ax.set_title("Inferred track status, Singapore (green / VSC amber / SC red)")
+ax = axs[0, 1]
+D_ = CAL["sc_durations"]; xs_ = np.arange(1, D_.max() + 3)
+pmf_ = np.where(xs_ < m_, 0, (1 - pss_) * pss_ ** np.maximum(xs_ - m_, 0))
+ax.bar(xs_ - 0.2, [(D_ == x).mean() for x in xs_], 0.4, label="observed (%d SCs)" % len(D_))
+ax.bar(xs_ + 0.2, pmf_, 0.4, label="phase-type fit m=%d, $p_{SS}$=%.2f" % (m_, pss_))
+ax.set_xlabel("Safety-Car length [laps]"); ax.set_ylabel("probability"); ax.set_title("SC duration law"); ax.legend()
+ax = axs[1, 0]
+fuel_slope = p["gamma_s_per_kg"] * p["burn_kg_per_lap"]
+rows_ = CAL["wear_rows"]
+for ci, c_ in enumerate(("SOFT", "MEDIUM", "HARD")):
+    rr = [x for x in rows_ if x[2] == c_]
+    by = {}
+    for k_ in set(x[1] for x in rr):
+        q_ = [x for x in rr if x[1] == k_]
+        t_ = np.array([x[5] + fuel_slope * (x[4] - 1) for x in q_]); a_ = np.array([x[3] for x in q_])
+        for aa, tt in zip(a_, t_ - (t_ - CAL["wear_all"][c_][0] * a_).mean()):
+            by.setdefault(int(aa), []).append(tt)
+    ages = sorted(a for a in by if len(by[a]) >= 4)
+    ax.plot(ages, [np.mean(by[a]) for a in ages], "o", ms=3, color="C%d" % ci, alpha=.7, label="%s observed" % c_.lower())
+    ax.plot(ages, [CAL["wear_all"][c_][0] * a for a in ages], "-", color="C%d" % ci)
+ax.set_xlabel("tyre age [laps]"); ax.set_ylabel("fuel-corrected lap time, stint-centred [s]"); ax.set_title("Tyre wear, 2023–2025 clean laps (lines: fit)")
+ax.legend(fontsize=8); ax.grid(alpha=.3)
+ax = axs[1, 1]
+st_ = cr["stops"]; xx = np.linspace(cr["shift"] + 0.01, st_.max() + 1, 300)
+ax.hist(st_, bins=15, density=True, alpha=.6, label="2025 stationary times (n=%d)" % len(st_))
+pdf_ = np.exp(-(np.log(xx - cr["shift"]) - cr["mu"]) ** 2 / (2 * cr["sigma"] ** 2)) / ((xx - cr["shift"]) * cr["sigma"] * np.sqrt(2 * np.pi))
+ax.plot(xx, pdf_, "k-", label="shifted lognormal fit"); ax.set_xlabel("stationary time [s]"); ax.set_title("Pit-crew time"); ax.legend()
+fig.tight_layout(); fig.savefig(os.path.join(FIG_DIR, "calibration_real_data.png"), dpi=150); plt.show()
+""")
+
+md(r"""
+### 6.8 The answer with calibrated parameters, and parameter uncertainty
+The calibrated values replace the assumed ones (compound pace offsets, fuel and noise stay as before). Stage 1 and Stage 2 are re-run on fresh seeds, so the shortlist is chosen again in the calibrated world.
+
+Then **parameter uncertainty is propagated** through the decision (X5): 300 parameter sets are drawn ($P_{GS}$ from its Beta posterior, each wear rate from $N(\hat k_c, \widehat{se}^2)$, $\alpha_{SC}$ resampled from the per-race estimates), and each set is evaluated on 2,000 paired races. The result is the probability that each plan is best once both race randomness and parameter uncertainty are counted.
+""")
+code(r"""
+pc = with_params(p, **CAL["params"])
+cands_c = candidate_strategies(pc) + [strategy([L], c, reactive_window=(12, L)) for c in (("MEDIUM", "HARD"), ("HARD", "MEDIUM"), ("SOFT", "HARD")) for L in range(14, 46, 2)]
+ranked_c = screen(cands_c, pc, 1000, SEED + 211)
+pick = lambda pred: next(s for m, s in ranked_c if pred(s))
+SL_C = [pick(lambda s: len(s["pit_laps"]) == 1 and s["reactive_window"] is None), pick(lambda s: len(s["pit_laps"]) == 2),
+        pick(lambda s: s["reactive_window"] is not None)]
+rows_c, Xc = paired_table(SL_C, pc, 10_000, SEED + 222, ref=0, z=bonferroni_z(2))
+print("Calibrated world (alpha_SC = %.2f, alpha_VSC = %.2f, dT_G = %.1f s, P_GS = %.4f):" % (pc["alpha_sc"], pc["alpha_vsc"], pc["dT_green_s"], pc["p_gs"]))
+for r_ in rows_c:
+    print("  %-34s mean %.2f s   diff vs one-stop %+6.2f s [%+.2f, %+.2f]" % (r_["name"], r_["mean_s"], r_["diff_s"], r_["diff_low_s"], r_["diff_high_s"]))
+
+rng_u = np.random.default_rng(SEED + 300)
+k_gs, n_gs = CAL["onsets_sc"]
+alphas_obs = np.array([r_["alpha_sc"] for r_ in CAL["sc_stop_years"]])
+U = []
+for d in range(300):
+    ks = dict(pc["k_s_per_lap"])
+    m_mid_ = p["m0_kg"] - p["burn_kg_per_lap"] * p["n_laps"] / 2
+    for c_, (b_, se_, _, ns_) in CAL["wear_all"].items():
+        if ns_ >= MIN_STINTS:
+            ks[c_] = max(1e-3, rng_u.normal(b_, se_)) / (1 + p["beta_per_kg"] * m_mid_)
+    ks["SOFT"] = ks["MEDIUM"] * p["k_s_per_lap"]["SOFT"] / p["k_s_per_lap"]["MEDIUM"]
+    q = with_params(pc, p_gs=float(rng_u.beta(1 + k_gs, 1 + n_gs - k_gs)), k_s_per_lap=ks,
+                    alpha_sc=float(np.clip(np.median(rng_u.choice(alphas_obs, len(alphas_obs))), 0, 1)), alpha_vsc=pc["alpha_vsc"])
+    X = run_paired(SL_C, q, 2000, SEED + 5000 + d)
+    U.append(X.mean(0))
+U = np.array(U)
+best = np.bincount(U.argmin(1), minlength=3) / len(U)
+for j, s in enumerate(SL_C):
+    print("P(best) %-34s %.2f" % (s["name"], best[j]))
+d1, d2 = U[:, 1] - U[:, 0], U[:, 2] - U[:, 0]
+print("two-stop - one-stop: median %+.2f s, 90%% interval [%+.2f, %+.2f]" % (np.median(d1), *np.quantile(d1, [.05, .95])))
+print("reactive - one-stop: median %+.2f s, 90%% interval [%+.2f, %+.2f]" % (np.median(d2), *np.quantile(d2, [.05, .95])))
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.hist(d1, bins=30, alpha=.6, label="two-stop − one-stop"); ax.hist(d2, bins=30, alpha=.6, label="pit-if-neutralised − one-stop")
+ax.axvline(0, color="k", lw=.8); ax.set_xlabel("expected paired difference [s] for one parameter draw"); ax.set_ylabel("parameter draws")
+ax.set_title("Decision under parameter uncertainty (300 draws × 2,000 races)"); ax.legend(); ax.grid(alpha=.3)
+fig.tight_layout(); fig.savefig(os.path.join(FIG_DIR, "uncertainty_propagation.png"), dpi=150); plt.show()
+
+# where does the calibrated answer switch?
+sw_c = []
+for v in [0.0, 0.0025, 0.005, 0.01, 0.015, 0.02, 0.03, 0.04]:
+    X = run_paired(SL_C, with_params(pc, p_gs=v, alpha_sc=pc["alpha_sc"], alpha_vsc=pc["alpha_vsc"]), 10_000, SEED + 900 + int(v * 1e4))
+    sw_c.append((v, mean_ci(X[:, 2] - X[:, 0]), mean_ci(X[:, 1] - X[:, 0])))
+for v, r_, t_ in sw_c:
+    print("calibrated P_GS = %.4f: reactive - one-stop %+.2f [%+.2f, %+.2f] s | two-stop - one-stop %+.2f [%+.2f, %+.2f] s" % (v, *r_, *t_))
+cross_c = crossover([x[0] for x in sw_c], [x[1][0] for x in sw_c])
+print("calibrated switch point (reactive vs one-stop): %s" % ("P_GS ~ %.4f" % cross_c if cross_c is not None else "none in range"))
 """)
 
 # ---------------------------------------------------------------------------
@@ -631,23 +790,28 @@ for k, v in cross.items():
 print("  CRN variance reduction: %.1fx" % vr)
 """)
 md(r"""
+**Team extension (§6.6).** When both cars stop under the same neutralisation, the second car loses about 3 s queueing in the box (crew time plus turnaround minus the gap). The SC discount on its stop is much larger, so double-stacking still beats leaving car B out, by the margin printed in §6.6. Both reactive team policies beat the fixed plans, and the advantage grows with $P_{GS}$.
+
+**Real-data findings (§6.7–6.8).** The data confirm the baseline Safety-Car rate ($\hat P_{GS}\approx0.022$, 95% interval roughly 0.014–0.034, against an assumed 0.020) and the minimum SC length (2 laps, mean ≈ 3.7 laps), and the duration law and onset rate both pass their held-out tests on 2018–2025. Two inputs change materially. First, SC laps at Singapore run at about **1.38×** Green pace, not the 1.60× of the literature. Second, the **measured pit-loss discount under a Safety Car is about 0.86**, twice the 0.43 that the uniform-slowdown geometry predicts. A stop under SC costs only a few seconds because the pit-lane entry and exit are close to the SC queue. With that discount, *pit-if-neutralised* becomes the best plan in the calibrated world, about 4 s faster than the best one-stop with a CI far from zero, and it remains best in every one of 300 parameter draws. In the calibrated sweep the reactive plan wins across the whole range, even at $P_{GS}=0$, because VSC periods and lap-1 Safety Cars still occur. So at Singapore the question is no longer *whether* to react but how wide the window should be.
+
 **Interpretation (baseline run, master seed 20251005; re-check the printed numbers if you change parameters).**
 * **Fixed windows gain little from safety cars.** A planned stop falls under SC only with probability $p_S(L)$, a few percent per lap, so the expected discount per stop is small (§3.6). The stage-2 table shows the best one-stop ahead of the best two-stop by several seconds, with a CI far from zero.
 * **More safety cars make the two-stop *worse*, not better.** SC laps cheapen stops (via $\alpha_{SC}$), but they also replace Green laps, where degradation costs time, and they slow tyre wear ($\varphi_S$). Fresh tyres are therefore worth less, and in this model the second effect dominates. So the two-stop never overtakes the one-stop in the swept range.
 * **The value of an SC comes from reacting to it.** The pit-if-neutralised strategy's gap to the one-stop shrinks steadily as $P_{GS}$ grows. It crosses zero at the printed switch point, about twice the baseline onset rate.
-* **What drives the answer:** the HARD wear rate and $P_{GS}$ dominate the tornado chart, while $\alpha_{SC}$ and the crew-time spread barely matter. Tyre wear is therefore the first parameter to calibrate with FastF1.
+* **What drives the answer:** the HARD wear rate and $P_{GS}$ dominate the tornado chart, while $\alpha_{SC}$ and the crew-time spread barely matter. Tyre wear and the SC discount are therefore the inputs that §6.7 calibrates from real data.
 * **CRN is extremely effective here:** under H6, SC laps are identical for all strategies, so they cancel. The measured variance ratio is in the thousands, far beyond the ≥ 2 a generic model would give.
 
 **Limitations.**
 1. Single car: no track position, overtaking or traffic. At Singapore, track position matters a lot, and this model ignores it.
 2. The objective is expected race time, not finishing position or points.
-3. Parameters marked *assumed* (wear rates, pit geometry, crew spread) still need calibration with FastF1 data (`src/calibrate.py`).
+3. Track status is *inferred* from lap times (public lap data has no status flag). It matches OpenF1's race-control messages for 2023, but short VSC periods before 2015 cannot exist and edge laps are partial. Compound pace offsets, the fuel effect and the SOFT wear rate (too few soft stints) are still assumed.
 4. A time-homogeneous incident rate after lap 1, and no VSC→SC escalation.
 5. Pit losses assume the 2025 80 km/h pit-lane limit.
 6. No weather, red flags, or slow-stop / unsafe-release events.
-7. Only about six Singapore races exist in FastF1, so $P_{GS}$ is uncertain. Hence the sweep and the sensitivity study.
+7. Sixteen races give about 19 SC onsets, so $P_{GS}$ is uncertain. This is why the Beta posterior is propagated through the decision (§6.8).
+8. The team model has two cars and no other traffic, and the no-passing rule applies only between team-mates.
 
-**With more time:** calibrate from FastF1, add a Bellman (dynamic-programming) optimal reactive policy, and extend to the two-car team model.
+**Future work:** a Bellman (dynamic-programming) optimal reactive policy over (lap, status, tyre age, stops left); a full-field traffic model built on the team DES; per-team crew-time distributions; and an in-browser Pyodide build of the Python model.
 """)
 
 md(r"""
