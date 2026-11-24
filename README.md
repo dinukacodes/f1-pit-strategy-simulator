@@ -2,7 +2,7 @@
 
 **A Monte Carlo race simulator, calibrated on 16 Singapore Grands Prix, that finds when a Formula 1 team should stop once, stop twice, or wait for a Safety Car.**
 
-**▶ Live demo: <https://dinukacodes.github.io/f1-pit-strategy-simulator/>** &nbsp; [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dinukacodes/f1-pit-strategy-simulator/blob/main/notebook/f1-pit-strategy-simulator.ipynb) &nbsp; ![License: MIT](https://img.shields.io/badge/code-MIT-blue) ![Data: CC BY-NC-SA 4.0](https://img.shields.io/badge/data-CC%20BY--NC--SA%204.0-lightgrey)
+**▶ Live demo: <https://dinukacodes.github.io/f1-pit-strategy-simulator/>** (mirror: <https://pitstop-strategy-lab.pages.dev/>) &nbsp; [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dinukacodes/f1-pit-strategy-simulator/blob/main/notebook/f1-pit-strategy-simulator.ipynb) &nbsp; ![License: MIT](https://img.shields.io/badge/code-MIT-blue) ![Data: CC BY-NC-SA 4.0](https://img.shields.io/badge/data-CC%20BY--NC--SA%204.0-lightgrey)
 
 [![The web demo](figures/screenshots/hero.png)](https://dinukacodes.github.io/f1-pit-strategy-simulator/)
 
