@@ -259,7 +259,7 @@
       $("#rp-play").textContent = "❚❚ Pause";
       timer = setInterval(() => { if (lap >= p.n_laps) { stop(); return; } setLap(lap + 1); }, +$("#rp-speed").value);
     }
-    function stop() { clearInterval(timer); timer = null; $("#rp-play").textContent = "▶ Play"; }
+    function stop() { clearInterval(timer); timer = null; $("#rp-play").textContent = "▶ Start"; }
     $("#rp-play").addEventListener("click", play);
     $("#rp-speed").addEventListener("change", () => { if (timer) { stop(); play(); } });
     $("#rp-new").addEventListener("click", () => { stop(); if (preset.script) choose(PRESETS[0]); seed = +$("#rp-seed").value + 1; pickRandom(seed); lap = 1; play(); });

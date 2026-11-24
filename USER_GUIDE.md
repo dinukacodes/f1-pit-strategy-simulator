@@ -24,7 +24,7 @@ The top bar jumps to each section: **Race replay → The model → Monte Carlo �
 ![Race replay](figures/screenshots/replay.png)
 
 1. **Pick a race.** *Random race* draws Safety Cars from the Markov chain. The other buttons replay real track-status sequences (Singapore 2008, 2023, 2024, Abu Dhabi 2021) and a lap-1 chaos case.
-2. Press **▶ Play**. The three strategies (one-stop, two-stop, pit-if-neutralised) race through the *same* scenario: the same Safety Cars, the same lap noise and the same crew luck. This is the *common random numbers* idea.
+2. Press **▶ Start** (it becomes **❚❚ Pause** while the race runs). The three strategies (one-stop, two-stop, pit-if-neutralised) race through the *same* scenario: the same Safety Cars, the same lap noise and the same crew luck. This is the *common random numbers* idea.
 3. **🎲 New random race** draws a new scenario (change **Seed** to get a specific one). **↺ Reset** rewinds. **Speed** sets the playback rate, and the slider scrubs to any lap.
 4. Read the charts: *Gap to One-stop* (below 0 = ahead), *Tyre wear w* (resets to 0 at each stop), the strip of Green / VSC / SC laps, and the race commentary. The breakdown at the bottom right splits the current lap time into base, compound, wear, fuel and noise.
 
