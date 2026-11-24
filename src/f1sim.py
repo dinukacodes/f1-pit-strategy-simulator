@@ -576,6 +576,209 @@ def simulate_race_loop(s, p, scen, i):
 
 
 # ---------------------------------------------------------------------------
+# Two-car team model (next-event discrete-event simulation)
+# ---------------------------------------------------------------------------
+
+def team_params(p, **changes):
+    """Team-model settings added to a copy of p (all times in seconds).
+
+    grid_gap_s   car B starts this far behind car A
+    follow_gap_s minimum gap when a car is stuck behind its team-mate on track
+    sc_gap_s     gap the field bunches up to behind the Safety Car
+    box_turn_s   crew turnaround before the box can serve the second car
+    rho_noise    correlation of the two cars' lap noise (shared track evolution)
+    interact     False -> the cars ignore each other (independent single-car races)
+    """
+    q = copy.deepcopy(p)
+    q.setdefault("grid_gap_s", 0.8)
+    q.setdefault("follow_gap_s", 0.6)
+    q.setdefault("sc_gap_s", 0.8)
+    q.setdefault("box_turn_s", 1.5)
+    q.setdefault("rho_noise", 0.7)
+    q.setdefault("interact", True)
+    q.update(changes)
+    return q
+
+
+def draw_team_scenarios(n_reps, p, seed):
+    """Scenarios for two cars. Car A uses exactly draw_scenarios(seed); car B gets
+    its own lap-noise and crew streams (lap noise correlated with A by rho_noise)
+    and shares A's track status."""
+    q = team_params(p)
+    a = draw_scenarios(n_reps, q, seed)
+    ss = np.random.SeedSequence([seed, 2])
+    g_noise, g_crew = [np.random.default_rng(s) for s in ss.spawn(2)]
+    if q.get("random", True):
+        rho = q["rho_noise"]
+        z_ind = box_muller(a["z_lap"].size, g_noise).reshape(a["z_lap"].shape)
+        z_b = rho * a["z_lap"] + math.sqrt(1 - rho ** 2) * z_ind
+        zc_b = box_muller(a["z_crew"].size, g_crew).reshape(a["z_crew"].shape)
+    else:
+        z_b, zc_b = np.zeros_like(a["z_lap"]), np.zeros_like(a["z_crew"])
+    b = dict(status=a["status"], z_lap=z_b, z_crew=zc_b)
+    return a, b
+
+
+class _Car:
+    """State of one car inside the event loop."""
+
+    def __init__(self, name, s, p, scen, i):
+        self.name, self.s, self.p = name, s, p
+        self.status = scen["status"][i]
+        self.z_lap, self.z_crew = scen["z_lap"][i], scen["z_crew"][i]
+        first = int(_first_stop_laps(s, scen["status"][i:i + 1])[0])
+        self.stops = [first] + list(s["pit_laps"][1:])
+        self.lap, self.stint, self.w = 0, 0, 0.0          # completed laps, stint index, wear [s]
+        self.lap_start = 0.0                                # race clock at the start of the current lap
+        self.line_times = []                                # race clock at each line crossing
+        self.stack_wait = 0.0                               # [s] waited behind the team-mate in the box
+        self.traffic = 0.0                                  # [s] lost stuck behind the team-mate
+        self.pending_line = None                            # scheduled crossing time of the current lap
+        self.in_pit = False
+
+    def natural_lap(self, l):
+        """Lap time [s] of lap l ignoring the other car (identical to the single-car model)."""
+        p, st = self.p, int(self.status[l - 1])
+        c = self.s["compounds"][self.stint]
+        if st == GREEN:
+            fuel = p["m0_kg"] - p["burn_kg_per_lap"] * (l - 1)
+            t = p["t0_s"] + p["offset_s"][c] + self.w + p["gamma_s_per_kg"] * fuel
+            if p.get("random", True):
+                t += p["sigma_s"] * self.z_lap[l - 1]
+        else:
+            t = (p["k_vsc"] if st == VSC else p["k_sc"]) * p["t0_s"]
+        phi = (1.0, p["phi_vsc"], p["phi_sc"])[st]
+        self.w = float(rk4_step(wear_rhs(p, c, l, phi), 0.0, self.w, 1.0))
+        return t
+
+    def crew_time(self):
+        p = self.p
+        z = self.z_crew[self.stint] if p.get("random", True) else 0.0
+        return p["crew_shift_s"] + math.exp(p["crew_mu"] + p["crew_sigma"] * z) if p.get("random", True) \
+            else p["crew_shift_s"] + math.exp(p["crew_mu"])
+
+
+def simulate_team_race(sA, sB, p, scen_a, scen_b, i=0, log=None):
+    """Two team-mates, one pit box, next-event time advance.
+
+    Events (time-ordered with a heap): LINE (car crosses the line, starts the
+    next lap), BOX_ARRIVE, BOX_DONE. Interactions:
+      * double-stacking: one box, first come first served; the second car waits
+        until the first car's service ends plus a crew turnaround box_turn_s;
+      * no passing on track: a car that starts a lap behind its team-mate cannot
+        cross the line less than follow_gap_s behind it (traffic on rejoining is
+        the same rule applied to the out-lap);
+      * Safety-Car bunching: on SC laps the trailing car closes up to sc_gap_s.
+    With interact=False none of these apply and each car reproduces
+    simulate_scenarios exactly. Returns a dict of totals and delays [s].
+    """
+    import heapq
+    q = team_params(p)
+    cars = [_Car("A", sA, q, scen_a, i), _Car("B", sB, q, scen_b, i)]
+    N = q["n_laps"]
+    box_free, busy, queue, ev, seq = 0.0, False, [], [], 0
+
+    def push(t, kind, k):
+        nonlocal seq
+        heapq.heappush(ev, (t, seq, kind, k))
+        seq += 1
+
+    def start_lap(k, t):
+        """Car k crosses the line at t and begins lap car.lap + 1."""
+        car = cars[k]
+        car.lap_start = t
+        l = car.lap + 1
+        d = car.natural_lap(l)
+        if car.stint < len(car.stops) and l == car.stops[car.stint]:
+            st = int(car.status[l - 1])
+            alpha = (0.0, q["alpha_vsc"], q["alpha_sc"])[st]
+            car.transit = (1 - alpha) * q["dT_green_s"]
+            car.in_pit = True
+            car.pending_line = None
+            push(t + d + car.transit / 2, "BOX_ARRIVE", k)
+        else:
+            car.in_pit = False
+            car.pending_line = t + d
+            push(t + d, "LINE", k)
+
+    def serve(k, t):
+        nonlocal box_free, busy
+        busy = True
+        c = cars[k].crew_time()
+        box_free = t + c + q["box_turn_s"]
+        push(t + c, "BOX_DONE", k)
+
+    for k, t0 in ((0, 0.0), (1, q["grid_gap_s"])):
+        start_lap(k, t0)
+    while ev:
+        t, _, kind, k = heapq.heappop(ev)
+        car, other = cars[k], cars[1 - k]
+        if kind == "BOX_ARRIVE":
+            if q["interact"] and (busy or queue):
+                queue.append((k, t))                        # team-mate still in the box: wait
+            elif q["interact"] and t < box_free:
+                car.stack_wait += box_free - t              # crew still resetting after the team-mate
+                serve(k, box_free)
+            else:
+                serve(k, t)
+        elif kind == "BOX_DONE":
+            busy = False
+            car.stint += 1
+            car.w = 0.0
+            car.in_pit = False
+            car.pending_line = t + car.transit / 2
+            push(car.pending_line, "LINE", k)
+            if queue:
+                j, t_arr = queue.pop(0)
+                t_start = max(t + q["box_turn_s"], t_arr)
+                cars[j].stack_wait += t_start - t_arr
+                serve(j, t_start)
+        elif kind == "LINE":
+            if t != car.pending_line:
+                continue                                    # superseded by a re-scheduled crossing
+            l = car.lap + 1
+            if q["interact"] and other.lap == car.lap and other.pending_line is not None \
+                    and other.lap_start < car.lap_start and not other.in_pit:
+                st = int(car.status[l - 1])
+                gap = q["sc_gap_s"] if st == SC else q["follow_gap_s"]
+                limit = other.pending_line + gap
+                if st == SC and t > limit:
+                    t_new = limit                           # bunching behind the Safety Car
+                else:
+                    t_new = max(t, limit)                   # cannot pass the team-mate on track
+                if t_new != t:
+                    car.traffic += t_new - t
+                    car.pending_line = t_new
+                    push(t_new, "LINE", k)
+                    continue
+            car.lap += 1
+            car.line_times.append(t)
+            if log is not None:
+                log.append((t, car.name, car.lap))
+            if car.lap < N:
+                start_lap(k, t)
+            else:
+                car.pending_line = None
+    tA = cars[0].line_times[-1]
+    tB = cars[1].line_times[-1] - q["grid_gap_s"]
+    return dict(total_a=tA, total_b=tB, stack_delay_a=cars[0].stack_wait, stack_delay_b=cars[1].stack_wait,
+                traffic_a=cars[0].traffic, traffic_b=cars[1].traffic)
+
+
+def simulate_two_car_race(sA, sB, p, seed):
+    """One two-car race from a seed (car A sees the same scenario as simulate_race(sA, p, seed))."""
+    a, b = draw_team_scenarios(1, p, seed)
+    return simulate_team_race(sA, sB, p, a, b, 0)
+
+
+def run_team(sA, sB, p, n_reps, seed):
+    """n_reps team races on common scenarios. Returns a dict of arrays."""
+    a, b = draw_team_scenarios(n_reps, p, seed)
+    rows = [simulate_team_race(sA, sB, p, a, b, i) for i in range(n_reps)]
+    return {k: np.array([r[k] for r in rows]) for k in rows[0]}
+
+
+# ---------------------------------------------------------------------------
 # Analytic results (verification references)
 # ---------------------------------------------------------------------------
 
