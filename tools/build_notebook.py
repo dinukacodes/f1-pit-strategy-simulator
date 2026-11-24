@@ -26,7 +26,7 @@ def module_sections(src):
     """Split f1sim.py into (title, code) blocks at its '# ----' section banners."""
     parts = re.split(r"\n# -{20,}\n# (.+)\n# -{20,}\n", src)
     head = parts[0]
-    out = [("Module header and imports", head)]
+    out = [("Header and imports", head)]
     for i in range(1, len(parts), 2):
         out.append((parts[i].strip(), parts[i + 1]))
     return out
@@ -124,13 +124,15 @@ Total in-lap loss $=(1-\alpha_s)\Delta T_G + C$, with stationary time $C=c_0+e^{
 ### 3.7 Monte Carlo with common random numbers
 $\operatorname{Var}(T_B-T_A)=\operatorname{Var}T_A+\operatorname{Var}T_B-2\operatorname{Cov}(T_A,T_B)$. Race times are non-decreasing in the shared inputs (H12), so $\operatorname{Cov}\ge 0$ and CRN cannot increase the variance. Each source has its own random stream, so strategies with different numbers of stops still use the same scenario. CI: $\bar D\pm z\,s_D/\sqrt n$, with a Bonferroni-adjusted $z$ for multiple comparisons. The required sample size is $n\ge(z s_D/h^*)^2$.
 
-### 3.8 Link to module topics
-| Equation / algorithm | Module topic |
+### 3.8 Concepts applied
+| Equation / algorithm | Concept |
 |---|---|
-| Tyre-wear ODE, RK4 (and Euler/RK2 for comparison), error order $O(h^4)$ | Numerical ODE solvers (●) |
-| Box–Muller normals; shifted-lognormal and DTMC sampling by inverse transform; KS tests | Input modelling and random variate generation (●) |
-| Phase-type track-status chain, $p(\ell)=p(1)P^{\ell-1}$, $\pi=\pi P$, MLE of $P$ | Markov chains (DTMC) (○) |
-| CRN paired differences, CIs, $O(N^{-1/2})$ convergence, sample-size formula | Monte Carlo and the law of large numbers (○) |
+| Tyre-wear ODE, RK4 (and Euler/RK2 for comparison), error order $O(h^4)$ | Numerical ODE solvers |
+| Box–Muller normals; shifted-lognormal and DTMC sampling by inverse transform; KS tests | Input modelling and random variate generation |
+| Phase-type track-status chain, $p(\ell)=p(1)P^{\ell-1}$, $\pi=\pi P$, MLE of $P$ | Discrete-time Markov chains |
+| CRN paired differences, CIs, $O(N^{-1/2})$ convergence, sample-size formula | Monte Carlo integration and the law of large numbers |
+| Two-car pit-box queue with an event list (next-event time advance) | Discrete-event simulation |
+| Transition counts → $\hat P$, Beta posteriors, phase-type duration fit, held-out tests | Input modelling from real data |
 """)
 
 code(r"""
@@ -340,6 +342,62 @@ assert abs(slope + 0.5) < 0.15
 print("PASS 5.7 (slope %.3f)" % slope)
 """)
 
+
+md(r"""
+### 5.8 Second independent check: exact paired-difference curve vs Monte Carlo
+§5.4 checked single expectations. Here the *decision quantity* itself, the expected paired difference $E[T_B-T_A]$ between a two-stop and a one-stop, is computed exactly from matrix powers of the chain (§3.6) for 13 values of $P_{GS}$, and the Monte Carlo paired CIs are overlaid. Every exact value must sit inside its 99.7% Monte Carlo interval. This check shares no code path with the simulator except the parameter dictionary.
+""")
+code(r"""
+sA_, sB_ = strategy([26], ["MEDIUM", "HARD"]), strategy([18, 40], ["SOFT", "MEDIUM", "HARD"])
+grid = np.linspace(0.0, 0.08, 13)
+ex_d, mc_m, mc_h = [], [], []
+for v in grid:
+    q = linear_params(with_params(p, p_gs=v))
+    ex_d.append(exact_expected_total(sB_, q) - exact_expected_total(sA_, q))
+    X = run_paired([sA_, sB_], q, 20_000, SEED + 4000 + int(v * 1e4))
+    d = X[:, 1] - X[:, 0]
+    mc_m.append(d.mean()); mc_h.append(3 * d.std(ddof=1) / math.sqrt(len(d)))
+ex_d, mc_m, mc_h = map(np.array, (ex_d, mc_m, mc_h))
+fig, ax = plt.subplots(figsize=(6.5, 4))
+ax.plot(grid, ex_d, "k-", lw=2, label="exact (matrix powers)")
+ax.errorbar(grid, mc_m, yerr=mc_h, fmt="o", color="C3", capsize=3, label="Monte Carlo mean ± 3 SE (20,000 paired races)")
+ax.set_xlabel("$P_{GS}$"); ax.set_ylabel("E[two-stop − one-stop] [s]"); ax.set_title("Exact vs simulated paired difference")
+ax.legend(); ax.grid(alpha=.3); fig.tight_layout(); fig.savefig(os.path.join(FIG_DIR, "verification_exact_vs_mc.png"), dpi=150); plt.show()
+zs = (mc_m - ex_d) / (mc_h / 3)
+print("z-scores:", np.round(zs, 2))
+assert np.all(np.abs(mc_m - ex_d) < mc_h)
+print("PASS 5.8 (max |z| = %.2f over %d points)" % (np.abs(zs).max(), len(grid)))
+""")
+
+md(r"""
+### 5.9 Two-car discrete-event model: reduction and queueing checks
+The team model (§4, *Two-car team model*) must (a) reproduce the single-car simulator **exactly** for both cars when interaction is switched off, over 300 random races; (b) leave the lead car untouched when the stops never overlap; (c) make the second car wait exactly $C+\tau-g_0$ when both cars stop on the same lap in a deterministic race (crew time $C$, turnaround $\tau$, grid gap $g_0$); and (d) never let a car wait when the stops are on different laps.
+""")
+code(r"""
+sT = strategy([26], ["MEDIUM", "HARD"])
+a_sc, b_sc = draw_team_scenarios(300, p, SEED + 9)
+q_off = team_params(p, interact=False)
+TA = np.array([simulate_team_race(sT, sT, q_off, a_sc, b_sc, i)["total_a"] for i in range(300)])
+TB = np.array([simulate_team_race(sT, sT, q_off, a_sc, b_sc, i)["total_b"] for i in range(300)])
+err_a = np.max(np.abs(TA - simulate_scenarios(sT, p, a_sc))); err_b = np.max(np.abs(TB - simulate_scenarios(sT, p, b_sc)))
+print("(a) no interaction: max |team - single| car A %.1e s, car B %.1e s" % (err_a, err_b))
+assert err_a < 1e-9 and err_b < 1e-9
+pdet = linear_params(p); pdet.update(random=False, p_gv=0.0, p_gs=0.0, p_lap1_sc=0.0)
+r = simulate_two_car_race(strategy([18], ["MEDIUM", "HARD"]), strategy([36], ["MEDIUM", "HARD"]), pdet, 0)
+single = simulate_race(strategy([18], ["MEDIUM", "HARD"]), pdet, 0)["total_time"]
+print("(b) non-overlapping stops: car A %.6f s vs single car %.6f s" % (r["total_a"], single))
+assert abs(r["total_a"] - single) < 1e-6 and r["stack_delay_b"] == 0
+r = simulate_two_car_race(sT, sT, pdet, 0)
+tq = team_params(pdet)
+expect = (tq["crew_shift_s"] + math.exp(tq["crew_mu"])) + tq["box_turn_s"] - tq["grid_gap_s"]
+print("(c) same-lap stops: car B waited %.6f s, expected C + tau - g0 = %.6f s" % (r["stack_delay_b"], expect))
+assert abs(r["stack_delay_b"] - expect) < 1e-9
+R = run_team(strategy([20], ["MEDIUM", "HARD"]), strategy([32], ["MEDIUM", "HARD"]), p, 300, SEED + 10)
+print("(d) different laps: max wait A %.2f s, B %.2f s over 300 random races" % (R["stack_delay_a"].max(), R["stack_delay_b"].max()))
+assert R["stack_delay_a"].max() == 0 and R["stack_delay_b"].max() == 0
+print("PASS 5.9")
+""")
+
 # ---------------------------------------------------------------------------
 md(r"""
 ## 6. Experiments and results
@@ -448,11 +506,40 @@ for i, name in enumerate(SENS):
 ax.set_yticks(range(len(SENS))); ax.set_yticklabels(list(SENS)); ax.axvline(0, color="k", lw=.8)
 ax.set_xlabel("two-stop − one-stop mean difference [s]"); ax.set_title("Sensitivity (tornado)"); ax.grid(alpha=.3, axis="x")
 fig.tight_layout(); fig.savefig(os.path.join(FIG_DIR, "sensitivity_tornado.png"), dpi=150); plt.show()
+"""
+)
+
+md(r"""
+**Interaction of the two strongest drivers.** One-at-a-time sweeps can hide interactions, so the decision quantity *pit-if-neutralised − one-stop* is mapped over a $7\times 5$ grid of $P_{GS}$ and the HARD wear rate (3,000 common scenarios per cell). Cells whose 95% CI excludes zero are marked: ▼ reactive is significantly faster, ▲ significantly slower, · not distinguishable.
+""")
+code(r"""
+pgs_g = np.array([0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06]); kh_g = np.array([0.025, 0.030, 0.035, 0.045, 0.055])
+M = np.zeros((len(kh_g), len(pgs_g))); S = np.zeros_like(M, dtype=int)
+for i, kh in enumerate(kh_g):
+    ks = dict(p["k_s_per_lap"]); ks["HARD"] = kh
+    for j, v in enumerate(pgs_g):
+        q = with_params(p, k_s_per_lap=ks, p_gs=v)
+        X = run_paired([best1, bestR], q, 3000, SEED + 800)
+        m, lo, hi = mean_ci(X[:, 1] - X[:, 0])
+        M[i, j] = m; S[i, j] = -1 if hi < 0 else (1 if lo > 0 else 0)
+fig, ax = plt.subplots(figsize=(7.5, 4.2))
+lim = np.abs(M).max()
+im = ax.imshow(M, origin="lower", cmap="RdBu_r", vmin=-lim, vmax=lim, aspect="auto")
+for i in range(len(kh_g)):
+    for j in range(len(pgs_g)):
+        ax.text(j, i, "%+.1f\n%s" % (M[i, j], {-1: "▼", 0: "·", 1: "▲"}[S[i, j]]), ha="center", va="center", fontsize=8)
+ax.set_xticks(range(len(pgs_g))); ax.set_xticklabels(pgs_g); ax.set_yticks(range(len(kh_g))); ax.set_yticklabels(kh_g)
+ax.set_xlabel("$P_{GS}$"); ax.set_ylabel("HARD wear rate $k_H$ [s/lap]"); ax.set_title("pit-if-neutralised − one-stop [s] (95% CI sign)")
+fig.colorbar(im, ax=ax, label="mean paired difference [s]"); fig.tight_layout()
+fig.savefig(os.path.join(FIG_DIR, "sensitivity_map.png"), dpi=150); plt.show()
+print("reactive significantly faster in %d of %d cells" % ((S == -1).sum(), S.size))
 """)
 
 md(r"""
 ### 6.5 Performance: plain loop vs vectorised NumPy
-The same 2,000 scenarios are run through the per-race Python loop and the vectorised simulator. The results must be identical, and the timings are the median of 3 runs.
+The same scenarios are run through the per-race Python loop and the vectorised simulator. The results must be identical, and the timings are the median of 3 runs.
+
+**Why it is faster.** The loop advances one race at a time, so every lap costs dozens of Python-level operations (dictionary look-ups, a scalar RK4 step, branching on the track status). The vectorised version swaps the loops: it advances *all* races one lap at a time, so each RK4 stage, each lap-time formula and each pit decision is one NumPy array operation running in compiled code. The Python overhead is paid 62 times per strategy instead of $62N$ times, so the speed-up grows with $N$ until memory bandwidth dominates. Pre-drawing every random number per source (status, lap noise, crew) also keeps CRN exact: the two implementations read the same numbers and agree to $10^{-9}$ s.
 """)
 code(r"""
 scen = draw_scenarios(2000, p, SEED + 7)
@@ -460,6 +547,72 @@ t_loop, a = timed(lambda: np.array([simulate_race_loop(best1, p, scen, i) for i 
 t_vec, b = timed(lambda: simulate_scenarios(best1, p, scen))
 assert np.max(np.abs(a - b)) < 1e-9
 print("loop %.3f s | vectorised %.4f s | speed-up %.1fx (identical results)" % (t_loop, t_vec, t_loop / t_vec))
+
+# scaling with the number of replications (median of 3 runs each)
+Ns_perf = [250, 500, 1000, 2000, 4000, 8000]
+t_l, t_v = [], []
+for n in Ns_perf:
+    sc_ = draw_scenarios(n, p, SEED + 70 + n)
+    t_l.append(timed(lambda: [simulate_race_loop(best1, p, sc_, i) for i in range(n)])[0] if n <= 4000 else np.nan)
+    t_v.append(timed(lambda: simulate_scenarios(best1, p, sc_))[0])
+t_l, t_v = np.array(t_l), np.array(t_v)
+ok = np.isfinite(t_l)
+fig, axs = plt.subplots(1, 2, figsize=(11, 4))
+axs[0].loglog(np.array(Ns_perf)[ok], t_l[ok], "o-", label="plain Python loop (one race at a time)")
+axs[0].loglog(Ns_perf, t_v, "s-", label="vectorised NumPy (all races per lap step)")
+axs[0].set_xlabel("races simulated"); axs[0].set_ylabel("wall time [s]"); axs[0].set_title("Run time vs number of races")
+axs[0].legend(); axs[0].grid(True, which="both", alpha=.3)
+axs[1].semilogx(np.array(Ns_perf)[ok], t_l[ok] / t_v[ok], "o-", color="C2")
+axs[1].set_xlabel("races simulated"); axs[1].set_ylabel("speed-up (loop / vectorised)"); axs[1].set_title("Measured speed-up")
+axs[1].grid(True, which="both", alpha=.3); fig.tight_layout(); fig.savefig(os.path.join(FIG_DIR, "performance_scaling.png"), dpi=150); plt.show()
+for n, a_, b_ in zip(Ns_perf, t_l, t_v):
+    print("N = %5d  loop %s  vectorised %.4f s  -> %s races/s" % (n, "%.3f s" % a_ if a_ == a_ else "   (skipped)", b_, "{:,.0f}".format(n / b_)))
+print("Stage-1 screening of %d strategies x 1,000 races would take ~%.0f s with the loop vs %.1f s vectorised"
+      % (len(cands), len(cands) * t_l[2], len(cands) * t_v[2]))
+""")
+
+
+md(r"""
+### 6.6 Team extension: is double-stacking under a Safety Car worth it?
+When a Safety Car comes out, both cars of a team want the cheap stop, but the second car must queue behind the first in the single pit box. Three team policies are compared on the same 4,000 race scenarios (CRN across policies), using the best reactive one-stop from Stage 1:
+* **both react**: both cars stop at the first SC/VSC in the window, so they double-stack whenever it happens (otherwise A stops on lap $L$ and B on $L+1$);
+* **split**: car A reacts, car B keeps its fixed one-stop plan (staggered one lap after A's planned lap, as teams do to avoid a planned double-stack);
+* **both fixed**: neither car reacts (A on lap $L$, B on lap $L+1$).
+
+The output is the team's total race time (A + B) relative to *both fixed*, with 95% CIs, and car B's queueing delay. The sweep over $P_{GS}$ shows when a team should split its cars.
+""")
+code(r"""
+react_ = bestR
+fixed_ = strategy(react_["pit_laps"], react_["compounds"])
+fixed_b = strategy([react_["pit_laps"][0] + 1], react_["compounds"])     # B staggered one lap to avoid a planned stack
+react_b = strategy([react_["pit_laps"][0] + 1], react_["compounds"], reactive_window=(react_["reactive_window"][0], react_["pit_laps"][0] + 1))
+policies = {"both react": (react_, react_b), "split (A reacts)": (react_, fixed_b), "both fixed": (fixed_, fixed_b)}
+team_rows, team_sweep = {}, {k: [] for k in policies}
+PGS_TEAM = [0.0, 0.02, 0.04, 0.06]
+for v in PGS_TEAM:
+    q = with_params(p, p_gs=v)
+    res = {k: run_team(sa, sb, q, 4000, SEED + 600 + int(v * 1e4)) for k, (sa, sb) in policies.items()}
+    base = res["both fixed"]["total_a"] + res["both fixed"]["total_b"]
+    for k, R in res.items():
+        team_sweep[k].append(mean_ci(R["total_a"] + R["total_b"] - base))
+    if abs(v - p["p_gs"]) < 1e-12:
+        team_rows = res
+print("Baseline P_GS = %.3f, 4,000 common race scenarios per policy" % p["p_gs"])
+for k, R in team_rows.items():
+    w = R["stack_delay_b"]
+    print("  %-18s car B waited in %.1f%% of races, mean wait when it did %.2f s; traffic %.2f s" %
+          (k, 100 * (w > 0).mean(), w[w > 0].mean() if (w > 0).any() else 0.0, R["traffic_b"].mean()))
+fig, axs = plt.subplots(1, 2, figsize=(11, 4))
+for k in ("both react", "split (A reacts)"):
+    m = np.array([x[0] for x in team_sweep[k]]); lo = np.array([x[1] for x in team_sweep[k]]); hi = np.array([x[2] for x in team_sweep[k]])
+    axs[0].plot(PGS_TEAM, m, "o-", label=k); axs[0].fill_between(PGS_TEAM, lo, hi, alpha=.25)
+    print("%-18s team gain vs both fixed: %s" % (k, "  ".join("%.2f:%+.2f[%+.2f,%+.2f]" % (v, *x) for v, x in zip(PGS_TEAM, team_sweep[k]))))
+axs[0].axhline(0, color="k", lw=.8); axs[0].set_xlabel("$P_{GS}$"); axs[0].set_ylabel("team time vs both fixed [s]")
+axs[0].set_title("Team policy under Safety-Car risk (95% CI)"); axs[0].legend(); axs[0].grid(alpha=.3)
+w = team_rows["both react"]["stack_delay_b"]
+axs[1].hist(w[w > 0], bins=40, color="C1", alpha=.8)
+axs[1].set_xlabel("car B queueing delay when double-stacked [s]"); axs[1].set_ylabel("races"); axs[1].set_title("Double-stack delay (both react, baseline)")
+axs[1].grid(alpha=.3); fig.tight_layout(); fig.savefig(os.path.join(FIG_DIR, "team_double_stack.png"), dpi=150); plt.show()
 """)
 
 # ---------------------------------------------------------------------------
