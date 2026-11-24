@@ -23,7 +23,7 @@ def code(text):
     cells.append(dict(cell_type="code", id="c%02d" % len(cells), metadata={}, execution_count=None, outputs=[], source=text.strip("\n")))
 
 
-def module_sections(src):
+def source_sections(src):
     """Split f1sim.py into (title, code) blocks at its '# ----' section banners."""
     parts = re.split(r"\n# -{20,}\n# (.+)\n# -{20,}\n", src)
     head = parts[0]
@@ -39,7 +39,11 @@ md(r"""
 
 **Summary.** This notebook simulates a 62-lap Formula 1 race at Singapore to compare one-stop, two-stop and *pit-if-neutralised* tyre strategies when Safety Car (SC) and Virtual Safety Car (VSC) periods occur at random. Tyre wear follows a fuel-coupled, self-accelerating ODE solved with **RK4**. Track status follows a lap-wise **Markov chain** with a phase-type minimum Safety-Car length. Pit losses are derived from pit-lane geometry. Stationary crew times and lap noise are generated with **inverse-transform and Box–Muller** samplers. Strategies are compared with **two-stage Monte Carlo using common random numbers (CRN)**, reporting 95% confidence intervals for paired race-time differences. The simulator is verified against closed-form ODE solutions, a deterministic benchmark with a derived optimum, the Markov chain's stationary distribution, and an **exact expected-race-time formula** that the Monte Carlo must reproduce.
 
-*Run with Runtime → Run all. No data downloads are needed. Seeds are fixed and printed. Parameters marked "assumed" are documented in §3 and tested in the sensitivity study.*
+**Extensions.** §5.8 adds an exact-vs-Monte-Carlo check of the decision quantity across the whole $P_{GS}$ range; §5.9 and §6.6 add a **two-car team model** (next-event discrete-event simulation of a shared pit box); §6.7 **calibrates** the model on 16 real Singapore races (2008–2025) with held-out validation; §6.4 and §6.8 study **sensitivity and parameter uncertainty**; §6.5 measures the **speed-up** of the vectorised simulator.
+
+Repository, web demo and documentation: https://github.com/dinukacodes/f1-pit-strategy-simulator · live demo: https://dinukacodes.github.io/f1-pit-strategy-simulator/
+
+*Run with Runtime → Run all (about a minute). The small data files are read from the repository, so no API access is needed. Seeds are fixed and printed. Parameters marked "assumed" are documented in §3 and tested in the sensitivity study.*
 """)
 
 code(r"""
@@ -147,7 +151,7 @@ md(r"""
 
 The model code is below, one cell per component (source of truth: `src/f1sim.py` in the repository). Units: seconds [s], kilograms [kg], laps. Status codes: 0 Green, 1 VSC, 2 SC.
 """)
-for title, body in module_sections(SRC):
+for title, body in source_sections(SRC):
     md("### 4.%d %s" % (len([c for c in cells if c["cell_type"] == "markdown" and c["source"].startswith("### 4.")]) + 1, title))
     code(body.strip("\n"))
 
