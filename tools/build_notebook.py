@@ -667,7 +667,7 @@ nb = dict(cells=cells, metadata=dict(kernelspec=dict(name="python3", display_nam
                                      language_info=dict(name="python"), colab=dict(provenance=[])),
           nbformat=4, nbformat_minor=5)
 os.makedirs(os.path.join(ROOT, "notebook"), exist_ok=True)
-out = os.path.join(ROOT, "notebook", "f1_pit_strategy_simulator.ipynb")
+out = os.path.join(ROOT, "notebook", "f1-pit-strategy-simulator.ipynb")
 with open(out, "w", encoding="utf-8") as f:
     json.dump(nb, f, indent=1, ensure_ascii=False)
 print("wrote", out, "with", len(cells), "cells")
