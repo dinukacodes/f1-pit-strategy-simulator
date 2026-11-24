@@ -1,0 +1,5 @@
+numpy==2.0.2
+matplotlib==3.9.2
+# optional, for src/calibrate.py only:
+# fastf1==3.4.4
+# pandas==2.2.2
