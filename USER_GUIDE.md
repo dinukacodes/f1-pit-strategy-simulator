@@ -2,7 +2,7 @@
 
 This guide covers the **web demo** (the *Pit Stop Strategy Lab*) and the **notebook**. The web demo runs entirely in your browser. Nothing is installed and nothing is sent to a server.
 
-**Live demo:** <https://pitstop-strategy-lab.pages.dev/> (GitHub Pages copy: <https://dinukacodes.github.io/f1-pit-strategy-simulator/>)
+**Live demo:** <https://pitstop-strategy-lab.pages.dev/> (Cloudflare Pages)
 **Offline:** download the repository and double-click `docs/index.html`. It works from `file://` too.
 
 ---
@@ -87,7 +87,7 @@ cd web
 npm i katex@0.16.11 esbuild@0.24.0
 python tools/export_notebook_results.py        # refresh the saved notebook numbers + Python fixture
 node tools/verify_port.js tools/python_fixture.json   # JS port must match Python on the same random numbers
-node tools/build.js                            # writes ../docs (GitHub Pages)
+node tools/build.js                            # writes ../docs (Cloudflare Pages)
 ```
 
 ## 8. Refreshing the real data

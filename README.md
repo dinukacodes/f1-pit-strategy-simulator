@@ -2,7 +2,7 @@
 
 **A Monte Carlo race simulator, calibrated on 16 Singapore Grands Prix, that finds when a Formula 1 team should stop once, stop twice, or wait for a Safety Car.**
 
-**▶ Live demo: <https://pitstop-strategy-lab.pages.dev/>** (GitHub Pages copy: <https://dinukacodes.github.io/f1-pit-strategy-simulator/>) &nbsp; [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dinukacodes/f1-pit-strategy-simulator/blob/main/notebook/f1-pit-strategy-simulator.ipynb) &nbsp; ![License: MIT](https://img.shields.io/badge/code-MIT-blue) ![Data: CC BY-NC-SA 4.0](https://img.shields.io/badge/data-CC%20BY--NC--SA%204.0-lightgrey)
+**▶ Live demo: <https://pitstop-strategy-lab.pages.dev/>** (Cloudflare Pages) &nbsp; [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dinukacodes/f1-pit-strategy-simulator/blob/main/notebook/f1-pit-strategy-simulator.ipynb) &nbsp; ![License: MIT](https://img.shields.io/badge/code-MIT-blue) ![Data: CC BY-NC-SA 4.0](https://img.shields.io/badge/data-CC%20BY--NC--SA%204.0-lightgrey)
 
 [![The web demo](figures/screenshots/hero.png)](https://pitstop-strategy-lab.pages.dev/)
 
@@ -123,7 +123,7 @@ An optimal reactive policy by dynamic programming over (lap, status, tyre age, s
 ├── src/                 f1sim.py (model, solvers, Markov chain, Monte Carlo, team DES) · calibrate.py
 ├── data/                Singapore race data (CC BY-NC-SA 4.0) + README
 ├── figures/             verification and result plots, demo screenshots
-├── docs/                GitHub Pages build of the web demo (.nojekyll)
+├── docs/                Cloudflare Pages build of the web demo
 ├── web/                 demo source (HTML, JS port of the model, build and port-verification tools)
 ├── tools/               notebook builder, data downloaders
 └── requirements.txt
