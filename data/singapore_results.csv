@@ -1,0 +1,339 @@
+year,driver,grid,position,laps,status
+2008,alonso,15,1,61,Finished
+2008,rosberg,8,2,61,Finished
+2008,hamilton,2,3,61,Finished
+2008,glock,7,4,61,Finished
+2008,vettel,6,5,61,Finished
+2008,heidfeld,9,6,61,Finished
+2008,coulthard,14,7,61,Finished
+2008,nakajima,10,8,61,Finished
+2008,button,12,9,61,Finished
+2008,kovalainen,5,10,61,Finished
+2008,kubica,4,11,61,Finished
+2008,bourdais,17,12,61,Finished
+2008,massa,1,13,61,Finished
+2008,fisichella,20,14,61,Finished
+2008,raikkonen,3,15,57,Accident
+2008,trulli,11,16,50,Hydraulics
+2008,sutil,19,17,49,Accident
+2008,webber,13,18,29,Transmission
+2008,barrichello,18,19,14,Mechanical
+2008,piquet_jr,16,20,13,Accident
+2009,hamilton,1,1,61,Finished
+2009,glock,6,2,61,Finished
+2009,alonso,5,3,61,Finished
+2009,vettel,2,4,61,Finished
+2009,button,11,5,61,Finished
+2009,barrichello,9,6,61,Finished
+2009,kovalainen,8,7,61,Finished
+2009,kubica,7,8,61,Finished
+2009,nakajima,10,9,61,Finished
+2009,raikkonen,12,10,61,Finished
+2009,rosberg,3,11,61,Finished
+2009,trulli,14,12,61,Finished
+2009,fisichella,17,13,61,Finished
+2009,liuzzi,19,14,61,Finished
+2009,alguersuari,16,15,47,Brakes
+2009,buemi,13,16,47,Gearbox
+2009,webber,4,17,45,Brakes
+2009,sutil,15,18,23,Collision
+2009,heidfeld,20,19,19,Collision
+2009,grosjean,18,20,3,Brakes
+2010,alonso,1,1,61,Finished
+2010,vettel,2,2,61,Finished
+2010,webber,5,3,61,Finished
+2010,button,4,4,61,Finished
+2010,rosberg,7,5,61,Finished
+2010,barrichello,6,6,61,Finished
+2010,kubica,8,7,61,Finished
+2010,massa,24,8,61,Finished
+2010,sutil,15,9,61,Finished
+2010,hulkenberg,17,10,61,Finished
+2010,petrov,12,11,60,+1 Lap
+2010,alguersuari,11,12,60,+1 Lap
+2010,michael_schumacher,9,13,60,+1 Lap
+2010,buemi,13,14,60,+1 Lap
+2010,grassi,20,15,59,+2 Laps
+2010,kovalainen,19,16,58,Engine
+2010,glock,18,17,49,Hydraulics
+2010,heidfeld,14,18,36,Collision
+2010,hamilton,3,19,35,Collision
+2010,klien,22,20,31,Hydraulics
+2010,kobayashi,10,21,30,Accident
+2010,bruno_senna,23,22,29,Accident
+2010,trulli,21,23,27,Hydraulics
+2010,liuzzi,16,24,1,Collision
+2011,vettel,1,1,61,Finished
+2011,button,3,2,61,Finished
+2011,webber,2,3,61,Finished
+2011,alonso,5,4,61,Finished
+2011,hamilton,4,5,61,Finished
+2011,resta,10,6,61,Finished
+2011,rosberg,7,7,60,+1 Lap
+2011,sutil,9,8,60,+1 Lap
+2011,massa,6,9,60,+1 Lap
+2011,perez,11,10,60,+1 Lap
+2011,maldonado,13,11,60,+1 Lap
+2011,buemi,14,12,60,+1 Lap
+2011,barrichello,12,13,60,+1 Lap
+2011,kobayashi,17,14,59,+2 Laps
+2011,bruno_senna,15,15,59,+2 Laps
+2011,kovalainen,19,16,59,+2 Laps
+2011,petrov,18,17,59,+2 Laps
+2011,ambrosio,22,18,59,+2 Laps
+2011,ricciardo,23,19,57,+4 Laps
+2011,liuzzi,24,20,57,+4 Laps
+2011,alguersuari,16,21,56,Accident
+2011,trulli,20,22,47,Gearbox
+2011,michael_schumacher,8,23,28,Accident
+2011,glock,21,24,9,Accident
+2012,vettel,3,1,59,Finished
+2012,button,4,2,59,Finished
+2012,alonso,5,3,59,Finished
+2012,resta,6,4,59,Finished
+2012,rosberg,10,5,59,Finished
+2012,raikkonen,12,6,59,Finished
+2012,grosjean,8,7,59,Finished
+2012,massa,13,8,59,Finished
+2012,ricciardo,15,9,59,Finished
+2012,perez,14,10,59,Finished
+2012,webber,7,11,59,Finished
+2012,glock,20,12,59,Finished
+2012,kobayashi,17,13,59,Finished
+2012,hulkenberg,11,14,59,Finished
+2012,kovalainen,19,15,59,Finished
+2012,pic,21,16,59,Finished
+2012,rosa,24,17,58,+1 Lap
+2012,bruno_senna,22,18,57,Retired
+2012,petrov,18,19,57,+2 Laps
+2012,vergne,16,20,38,Collision
+2012,michael_schumacher,9,21,38,Collision
+2012,maldonado,2,22,36,Hydraulics
+2012,karthikeyan,23,23,30,Accident
+2012,hamilton,1,24,22,Gearbox
+2013,vettel,1,1,61,Finished
+2013,alonso,7,2,61,Finished
+2013,raikkonen,13,3,61,Finished
+2013,rosberg,2,4,61,Finished
+2013,hamilton,5,5,61,Finished
+2013,massa,6,6,61,Finished
+2013,button,8,7,61,Finished
+2013,perez,14,8,61,Finished
+2013,hulkenberg,11,9,61,Finished
+2013,sutil,15,10,61,Finished
+2013,maldonado,18,11,61,Finished
+2013,gutierrez,10,12,61,Finished
+2013,bottas,16,13,61,Finished
+2013,vergne,12,14,61,Finished
+2013,webber,4,15,60,Water pressure
+2013,garde,20,16,60,+1 Lap
+2013,chilton,22,17,60,+1 Lap
+2013,jules_bianchi,21,18,60,+1 Lap
+2013,pic,19,19,60,+1 Lap
+2013,resta,17,20,54,Accident
+2013,grosjean,3,21,37,Pneumatics
+2013,ricciardo,9,22,23,Accident
+2014,hamilton,1,1,60,Finished
+2014,vettel,4,2,60,Finished
+2014,ricciardo,3,3,60,Finished
+2014,alonso,5,4,60,Finished
+2014,massa,6,5,60,Finished
+2014,vergne,12,6,60,Finished
+2014,perez,15,7,60,Finished
+2014,raikkonen,7,8,60,Finished
+2014,hulkenberg,13,9,60,Finished
+2014,kevin_magnussen,9,10,60,Finished
+2014,bottas,8,11,60,Finished
+2014,maldonado,18,12,60,Finished
+2014,grosjean,16,13,60,Finished
+2014,kvyat,10,14,60,Finished
+2014,ericsson,22,15,60,Finished
+2014,jules_bianchi,19,16,60,Finished
+2014,chilton,21,17,59,+1 Lap
+2014,button,11,18,52,Retired
+2014,sutil,17,19,40,Water pressure
+2014,gutierrez,14,20,17,Electrical
+2014,rosberg,2,21,13,Electrical
+2014,kobayashi,20,22,0,Power Unit
+2015,vettel,1,1,61,Finished
+2015,ricciardo,2,2,61,Finished
+2015,raikkonen,3,3,61,Finished
+2015,rosberg,6,4,61,Finished
+2015,bottas,7,5,61,Finished
+2015,kvyat,4,6,61,Finished
+2015,perez,13,7,61,Finished
+2015,max_verstappen,8,8,61,Finished
+2015,sainz,14,9,61,Finished
+2015,nasr,16,10,61,Finished
+2015,ericsson,17,11,61,Finished
+2015,maldonado,18,12,61,Finished
+2015,grosjean,10,13,59,Tyre
+2015,rossi,20,14,59,+2 Laps
+2015,stevens,19,15,59,+2 Laps
+2015,button,15,16,52,Gearbox
+2015,alonso,12,17,33,Gearbox
+2015,hamilton,5,18,32,Throttle
+2015,massa,9,19,30,Gearbox
+2015,hulkenberg,11,20,12,Collision
+2016,rosberg,1,1,61,Finished
+2016,ricciardo,2,2,61,Finished
+2016,hamilton,3,3,61,Finished
+2016,raikkonen,5,4,61,Finished
+2016,vettel,22,5,61,Finished
+2016,max_verstappen,4,6,61,Finished
+2016,alonso,9,7,61,Finished
+2016,perez,17,8,61,Finished
+2016,kvyat,7,9,61,Finished
+2016,kevin_magnussen,15,10,61,Finished
+2016,gutierrez,13,11,60,+1 Lap
+2016,massa,11,12,60,+1 Lap
+2016,nasr,16,13,60,+1 Lap
+2016,sainz,6,14,60,+1 Lap
+2016,jolyon_palmer,18,15,60,+1 Lap
+2016,wehrlein,19,16,60,+1 Lap
+2016,ericsson,14,17,60,+1 Lap
+2016,ocon,21,18,59,+2 Laps
+2016,button,12,19,43,Brakes
+2016,bottas,10,20,35,Overheating
+2016,hulkenberg,8,21,0,Collision
+2016,grosjean,20,22,0,Withdrew
+2017,hamilton,5,1,58,Finished
+2017,ricciardo,3,2,58,Finished
+2017,bottas,6,3,58,Finished
+2017,sainz,10,4,58,Finished
+2017,perez,12,5,58,Finished
+2017,jolyon_palmer,11,6,58,Finished
+2017,vandoorne,9,7,58,Finished
+2017,stroll,18,8,58,Finished
+2017,grosjean,15,9,58,Finished
+2017,ocon,14,10,58,Finished
+2017,massa,17,11,58,Finished
+2017,wehrlein,19,12,56,+2 Laps
+2017,kevin_magnussen,16,13,50,Engine
+2017,hulkenberg,7,14,48,Engine
+2017,ericsson,20,15,35,Accident
+2017,kvyat,13,16,10,Accident
+2017,alonso,8,17,8,Collision damage
+2017,vettel,1,18,0,Accident
+2017,max_verstappen,2,19,0,Accident
+2017,raikkonen,4,20,0,Accident
+2018,hamilton,1,1,61,Finished
+2018,max_verstappen,2,2,61,Finished
+2018,vettel,3,3,61,Finished
+2018,bottas,4,4,61,Finished
+2018,raikkonen,5,5,61,Finished
+2018,ricciardo,6,6,61,Finished
+2018,alonso,11,7,61,Finished
+2018,sainz,12,8,60,+1 Lap
+2018,leclerc,13,9,60,+1 Lap
+2018,hulkenberg,10,10,60,+1 Lap
+2018,ericsson,14,11,60,+1 Lap
+2018,vandoorne,18,12,60,+1 Lap
+2018,gasly,15,13,60,+1 Lap
+2018,stroll,20,14,60,+1 Lap
+2018,grosjean,8,15,60,+1 Lap
+2018,perez,7,16,60,+1 Lap
+2018,brendon_hartley,17,17,60,+1 Lap
+2018,kevin_magnussen,16,18,59,+2 Laps
+2018,sirotkin,19,19,59,+2 Laps
+2018,ocon,9,20,0,Collision
+2019,vettel,3,1,61,Finished
+2019,leclerc,1,2,61,Finished
+2019,max_verstappen,4,3,61,Finished
+2019,hamilton,2,4,61,Finished
+2019,bottas,5,5,61,Finished
+2019,albon,6,6,61,Finished
+2019,norris,9,7,61,Finished
+2019,gasly,11,8,61,Finished
+2019,hulkenberg,8,9,61,Finished
+2019,giovinazzi,10,10,61,Finished
+2019,grosjean,17,11,61,Finished
+2019,sainz,7,12,61,Finished
+2019,stroll,16,13,61,Finished
+2019,ricciardo,20,14,61,Finished
+2019,kvyat,14,15,61,Finished
+2019,kubica,19,16,61,Finished
+2019,kevin_magnussen,13,17,61,Finished
+2019,raikkonen,12,18,49,Collision
+2019,perez,15,19,42,Engine
+2019,russell,18,20,34,Collision
+2022,perez,2,1,59,Finished
+2022,leclerc,1,2,59,Finished
+2022,sainz,4,3,59,Finished
+2022,norris,6,4,59,Finished
+2022,ricciardo,16,5,59,Finished
+2022,stroll,11,6,59,Finished
+2022,max_verstappen,8,7,59,Finished
+2022,vettel,13,8,59,Finished
+2022,hamilton,3,9,59,Finished
+2022,gasly,7,10,59,Finished
+2022,bottas,15,11,59,Finished
+2022,kevin_magnussen,9,12,59,Finished
+2022,mick_schumacher,12,13,58,+1 Lap
+2022,russell,0,14,57,+2 Laps
+2022,tsunoda,10,15,34,Accident
+2022,ocon,17,16,26,Engine
+2022,albon,18,17,25,Collision damage
+2022,alonso,5,18,20,Engine
+2022,latifi,19,19,7,Collision damage
+2022,zhou,14,20,6,Collision
+2023,sainz,1,1,62,Finished
+2023,norris,4,2,62,Finished
+2023,hamilton,5,3,62,Finished
+2023,leclerc,3,4,62,Finished
+2023,max_verstappen,11,5,62,Finished
+2023,gasly,12,6,62,Finished
+2023,piastri,17,7,62,Finished
+2023,perez,13,8,62,Finished
+2023,lawson,10,9,62,Finished
+2023,kevin_magnussen,6,10,62,Finished
+2023,albon,14,11,62,Finished
+2023,zhou,19,12,62,Finished
+2023,hulkenberg,9,13,62,Finished
+2023,sargeant,18,14,62,Finished
+2023,alonso,7,15,62,Finished
+2023,russell,2,16,61,Retired
+2023,bottas,16,17,51,Retired
+2023,ocon,8,18,42,Retired
+2023,tsunoda,15,19,0,Retired
+2023,stroll,0,20,0,Withdrew
+2024,norris,1,1,62,Finished
+2024,max_verstappen,2,2,62,Finished
+2024,piastri,5,3,62,Finished
+2024,russell,4,4,62,Finished
+2024,leclerc,9,5,62,Finished
+2024,hamilton,3,6,62,Finished
+2024,sainz,10,7,62,Finished
+2024,alonso,7,8,61,Lapped
+2024,hulkenberg,6,9,61,Lapped
+2024,perez,13,10,61,Lapped
+2024,colapinto,12,11,61,Lapped
+2024,tsunoda,8,12,61,Lapped
+2024,ocon,15,13,61,Lapped
+2024,stroll,17,14,61,Lapped
+2024,zhou,20,15,61,Lapped
+2024,bottas,19,16,61,Lapped
+2024,gasly,18,17,61,Lapped
+2024,ricciardo,16,18,61,Lapped
+2024,kevin_magnussen,14,19,57,Retired
+2024,albon,11,20,15,Retired
+2025,russell,1,1,62,Finished
+2025,max_verstappen,2,2,62,Finished
+2025,norris,5,3,62,Finished
+2025,piastri,3,4,62,Finished
+2025,antonelli,4,5,62,Finished
+2025,leclerc,7,6,62,Finished
+2025,alonso,10,7,62,Finished
+2025,hamilton,6,8,62,Finished
+2025,bearman,9,9,62,Finished
+2025,sainz,18,10,61,Lapped
+2025,hadjar,8,11,61,Lapped
+2025,tsunoda,13,12,61,Lapped
+2025,stroll,15,13,61,Lapped
+2025,albon,20,14,61,Lapped
+2025,lawson,12,15,61,Lapped
+2025,colapinto,16,16,61,Lapped
+2025,bortoleto,14,17,61,Lapped
+2025,ocon,17,18,61,Lapped
+2025,gasly,19,19,61,Lapped
+2025,hulkenberg,11,20,61,Lapped
